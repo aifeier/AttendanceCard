@@ -89,8 +89,6 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
 
     private final int PERMISSION_CODE = 0 * 004;
 
-    // 公司位置
-    private final LatLng companyLL = new LatLng(30.278975, 120.145913);
     // 考勤区域半径
     private final double radius = 50;
     // 考勤区域
@@ -231,7 +229,7 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
                 showTip("开启WIFI将提高定位精度");
                 try {
                     wifiManager.setWifiEnabled(true);
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -258,10 +256,10 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
     //绘制可打卡的范围
     private void initCircle() {
         aMap.moveCamera(CameraUpdateFactory
-                .newLatLngZoom(companyLL, 17));// 设置指定的可视区域地图
+                .newLatLngZoom(Variable.companyLL, 17));// 设置指定的可视区域地图
 
         // 绘制一个圆形
-        circle = aMap.addCircle(new CircleOptions().center(companyLL)
+        circle = aMap.addCircle(new CircleOptions().center(Variable.companyLL)
                 .radius(radius)//半径
                 .strokeColor(Color.argb(100, 1, 1, 255))// 设置边框颜色，ARGB格式。如果设置透明，则边框不会被绘制。默认黑色。
                 .fillColor(Color.argb(50, 0, 0, 255))// 设置填充颜色。填充颜色是绘制边框以内部分的颜色，ARGB格式。默认透明。

@@ -1,5 +1,7 @@
 package com.example.ai.attendancecard;
 
+import com.amap.api.maps2d.model.LatLng;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -9,6 +11,9 @@ import java.util.List;
  */
 
 public class Variable {
+
+    // 公司位置
+    public static final LatLng companyLL = new LatLng(30.278975, 120.145913);
     // 上班时间
     private static final String DefauleStartTime = "9:00";
     private static final String DefaultEndTime = "17:30";
