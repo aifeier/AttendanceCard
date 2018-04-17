@@ -12,4 +12,5 @@
     <string name="error_field_required">必填</string>
     <string name="permission_rationale">需要提供联系人权限
     </string>
+    <string name="no_result">对不起，没有搜索到相关数据！</string>
 </resources>

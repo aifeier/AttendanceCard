@@ -13,7 +13,9 @@ import java.util.List;
 public class Variable {
 
     // 公司位置
-    public static final LatLng companyLL = new LatLng(30.278975, 120.145913);
+    public static LatLng companyLL = new LatLng(30.278975, 120.145913);
+    // 考勤区域半径
+    public static double radius = 50;
     // 上班时间
     private static final String DefauleStartTime = "9:00";
     private static final String DefaultEndTime = "17:30";

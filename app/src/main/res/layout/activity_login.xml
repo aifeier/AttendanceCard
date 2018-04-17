@@ -72,6 +72,13 @@
                 android:text="@string/action_sign_in"
                 android:textStyle="bold" />
 
+
+            <android.support.v7.widget.AppCompatButton
+                android:id="@+id/setCompany"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="设置公司和有效考勤范围" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -137,6 +144,7 @@
                 android:layout_height="200dp"
                 android:divider="#e3e3e3"
                 android:dividerHeight="1dp" />
+
 
         </LinearLayout>
     </ScrollView>

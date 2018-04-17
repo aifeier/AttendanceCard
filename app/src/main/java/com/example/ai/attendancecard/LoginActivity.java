@@ -141,6 +141,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         listView = findViewById(R.id.listview);
         startTimeBtn.setOnClickListener(this);
         endTimeBtn.setOnClickListener(this);
+        findViewById(R.id.setCompany).setOnClickListener(this);
         findViewById(R.id.add_wifi).setOnClickListener(this);
 
         startTimeBtn.setText(Variable.startTime);
@@ -480,6 +481,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                             }
                         })
                         .show();
+                break;
+            case R.id.setCompany:
+                startActivity(new Intent(this, SetCompanyActivity.class));
                 break;
         }
     }
