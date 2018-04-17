@@ -1,8 +1,10 @@
 package com.example.ai.attendancecard;
 
 import android.Manifest;
+import android.app.TimePickerDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
@@ -14,11 +16,13 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
@@ -48,8 +52,19 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class AttendanceMapActivity extends AppCompatActivity implements View.OnClickListener, LocationSource, EasyPermissions.PermissionCallbacks {
 
+    // 上班时间
+    private final String DefauleStartTime = "9:00";
+    private final String DefaultEndTime = "17:30";
+
+    private String startTime = DefauleStartTime;
+    private String endTime = DefaultEndTime;
+
+    private TimePickerDialog timePickerDialog;
+
+    private Button startTimeBtn, endTimeBtn;
+
     // 公司路由器mac地址
-    private final String[] companyWIFIs = {"30:fc:68:18:ac:20","30:fc:68:18:ac:1e"};
+    private final String[] companyWIFIs = {"30:fc:68:18:ac:20", "30:fc:68:18:ac:1e"};
 
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
@@ -118,16 +133,15 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
     private boolean inWifi = false;
     private WifiManager wifiManager;
 
+    //点击打卡的时候使用的位置信息，判断考勤情况
+    private CardInfo lastCardInfo;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
         firstLocation = true;
-        mapView = findViewById(R.id.mapview);
-        remind = findViewById(R.id.remind);
-        locationInfo = findViewById(R.id.locationInfo);
-        confirm = findViewById(R.id.confirm);
-        findViewById(R.id.confirm).setOnClickListener(this);
+        initView();
 
         mapView.onCreate(savedInstanceState);
         if (null != mapView)
@@ -148,9 +162,25 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
 
     }
 
+    private void initView() {
+        mapView = findViewById(R.id.mapview);
+        remind = findViewById(R.id.remind);
+        locationInfo = findViewById(R.id.locationInfo);
+        confirm = findViewById(R.id.confirm);
+        findViewById(R.id.confirm).setOnClickListener(this);
+
+        startTimeBtn = findViewById(R.id.start_time);
+        endTimeBtn = findViewById(R.id.end_time);
+        startTimeBtn.setOnClickListener(this);
+        endTimeBtn.setOnClickListener(this);
+
+        startTimeBtn.setText(startTime);
+        endTimeBtn.setText(endTime);
+    }
+
     private void initMap() {
         aMap.setLocationSource(this);// 设置定位监听
-//        aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
+        aMap.getUiSettings().setMyLocationButtonEnabled(true);// 设置默认定位按钮是否显示
         // 自定义系统定位蓝点
         MyLocationStyle myLocationStyle = new MyLocationStyle();
         // 自定义定位蓝点图标
@@ -176,6 +206,7 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
                 return;
             if (null != locationInfo && null != msg.obj) {
                 CardInfo info = (CardInfo) msg.obj;
+                lastCardInfo = info;
                 locationInfo.setText(info.msg);
                 if (info.inCompany) {
                     confirm.setText("确认打卡");
@@ -375,9 +406,64 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
 
     @Override
     public void onClick(View v) {
+        Calendar calendar = Calendar.getInstance();
         switch (v.getId()) {
             case R.id.confirm:
-                showTip("打卡成功", true);
+                if (null == lastCardInfo) {
+                    showTip("位置信息未知，不能打卡");
+                    return;
+                }
+                String[] start = startTime.split(":");
+                String[] end = endTime.split(":");
+                Calendar startCa = (Calendar) calendar.clone();
+                Calendar endCa = (Calendar) calendar.clone();
+                startCa.set(Calendar.HOUR_OF_DAY, Integer.valueOf(start[0]));
+                startCa.set(Calendar.MINUTE, Integer.valueOf(start[1]));
+                endCa.set(Calendar.HOUR_OF_DAY, Integer.valueOf(end[0]));
+                endCa.set(Calendar.MINUTE, Integer.valueOf(end[1]));
+
+                String msg = "不知道为什么要打卡";
+                if (calendar.compareTo(startCa) <= 0) {
+                    msg = "上班打卡";
+                } else if (calendar.compareTo(startCa) > 0 && calendar.compareTo(endCa) < 0) {
+                    msg = "早退";
+                } else if (calendar.compareTo(endCa) >= 0) {
+                    msg = "下班打卡";
+                }
+                if (!lastCardInfo.inCompany) {
+                    msg = "外勤；" + msg;
+                }
+                new AlertDialog.Builder(this)
+                        .setTitle("提示")
+                        .setMessage("确认 " + msg + " 吗？")
+                        .setNegativeButton("取消", null)
+                        .setPositiveButton("确认", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                showTip("打卡成功", true);
+                            }
+                        })
+                        .setCancelable(true)
+                        .create().show();
+                break;
+
+            case R.id.start_time:
+                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        startTime = hourOfDay + ":" + minute;
+                        startTimeBtn.setText(hourOfDay + ":" + minute);
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+                break;
+            case R.id.end_time:
+                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        endTime = hourOfDay + ":" + minute;
+                        endTimeBtn.setText(hourOfDay + ":" + minute);
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
                 break;
         }
     }
