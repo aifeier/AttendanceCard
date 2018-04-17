@@ -49,7 +49,7 @@ import pub.devrel.easypermissions.EasyPermissions;
 public class AttendanceMapActivity extends AppCompatActivity implements View.OnClickListener, LocationSource, EasyPermissions.PermissionCallbacks {
 
     // 公司路由器mac地址
-    private final String[] companyWIFIs = {};
+    private final String[] companyWIFIs = {"30:fc:68:18:ac:20","30:fc:68:18:ac:1e"};
 
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
