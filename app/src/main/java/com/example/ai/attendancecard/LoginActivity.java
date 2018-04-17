@@ -3,10 +3,16 @@ package com.example.ai.attendancecard;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.wifi.ScanResult;
+import android.net.wifi.WifiManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -20,15 +26,20 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.amap.api.services.help.Tip;
@@ -42,7 +53,7 @@ import static android.Manifest.permission.READ_CONTACTS;
 /**
  * A login screen that offers login via email/password.
  */
-public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
+public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor>, View.OnClickListener {
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -66,6 +77,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+
+
+    //设置
+    private Button startTimeBtn, endTimeBtn;
+    private ListView listView;
+    private BaseAdapter adapter;
+    private List<ScanResult> currentScanResultList;
+    private int currentSelectedWifiPosition;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +116,76 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+
+        initView();
+        mEmailView.setText("test");
+        mPasswordView.setText("123456");
+        WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+        if (WifiManager.WIFI_STATE_DISABLED == wifiManager.getWifiState()) {
+            Toast.makeText(this, "开启WIFI将提高定位精度", Toast.LENGTH_SHORT).show();
+            try {
+                wifiManager.setWifiEnabled(true);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void initView() {
+        currentScanResultList = new ArrayList<>();
+        Variable.companyWIFIs = new ArrayList<>();
+        Variable.companyWIFIs.add(new MWifiInfo("upsoft_5g", "30:fc:68:18:ac:20"));
+        Variable.companyWIFIs.add(new MWifiInfo("upsoft_yt", "30:fc:68:18:ac:1e"));
+        startTimeBtn = findViewById(R.id.start_time);
+        endTimeBtn = findViewById(R.id.end_time);
+        listView = findViewById(R.id.listview);
+        startTimeBtn.setOnClickListener(this);
+        endTimeBtn.setOnClickListener(this);
+        findViewById(R.id.add_wifi).setOnClickListener(this);
+
+        startTimeBtn.setText(Variable.startTime);
+        endTimeBtn.setText(Variable.endTime);
+
+        adapter = new BaseAdapter() {
+            @Override
+            public int getCount() {
+                return Variable.companyWIFIs.size();
+            }
+
+            @Override
+            public MWifiInfo getItem(int position) {
+                return Variable.companyWIFIs.get(position);
+            }
+
+            @Override
+            public long getItemId(int position) {
+                return position;
+            }
+
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                ViewHolder viewHolder;
+                if (null == convertView) {
+                    convertView = getLayoutInflater().inflate(R.layout.layout_wifi_item, parent, false);
+                    viewHolder = new ViewHolder();
+                    viewHolder.ssid = convertView.findViewById(R.id.item_ssid);
+                    viewHolder.del = convertView.findViewById(R.id.item_del);
+                    viewHolder.del.setOnClickListener(LoginActivity.this);
+                    convertView.setTag(viewHolder);
+                } else {
+                    viewHolder = (ViewHolder) convertView.getTag();
+                }
+                viewHolder.del.setTag(position);
+                viewHolder.ssid.setText(getItem(position).SSID);
+                return convertView;
+            }
+
+            class ViewHolder {
+                TextView ssid;
+                Button del;
+            }
+        };
+        listView.setAdapter(adapter);
     }
 
     private void populateAutoComplete() {
@@ -291,6 +380,110 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mEmailView.setAdapter(adapter);
     }
 
+    private int checkHourAndMinute(int srcHourOfDay, int srcMinute, int dstHourOfDay, int dstMinute) {
+        Calendar srcCalendar = Calendar.getInstance();
+        Calendar dstCalendar = (Calendar) srcCalendar.clone();
+        srcCalendar.set(Calendar.HOUR_OF_DAY, srcHourOfDay);
+        srcCalendar.set(Calendar.MINUTE, srcMinute);
+
+        dstCalendar.set(Calendar.HOUR_OF_DAY, dstHourOfDay);
+        dstCalendar.set(Calendar.MINUTE, dstMinute);
+        return srcCalendar.compareTo(dstCalendar);
+
+    }
+
+    @Override
+    public void onClick(View v) {
+        Calendar calendar = Calendar.getInstance();
+        switch (v.getId()) {
+            case R.id.start_time:
+                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        String[] time = Variable.endTime.split(":");
+                        if (checkHourAndMinute(hourOfDay, minute, Integer.valueOf(time[0]), Integer.valueOf(time[1])) >= 0) {
+                            Toast.makeText(LoginActivity.this, "上班时间只能小于下班时间", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        Variable.startTime = hourOfDay + ":" + minute;
+                        startTimeBtn.setText(hourOfDay + ":" + minute);
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+                break;
+            case R.id.end_time:
+                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
+                    @Override
+                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
+                        String[] time = Variable.startTime.split(":");
+                        if (checkHourAndMinute(hourOfDay, minute, Integer.valueOf(time[0]), Integer.valueOf(time[1])) <= 0) {
+                            Toast.makeText(LoginActivity.this, "下班班时间只能大于上班时间", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        Variable.endTime = hourOfDay + ":" + minute;
+                        endTimeBtn.setText(hourOfDay + ":" + minute);
+                    }
+                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
+                break;
+            case R.id.item_del:
+                int p = (int) v.getTag();
+                if (Variable.companyWIFIs.size() > p) {
+                    Variable.companyWIFIs.remove(p);
+                    adapter.notifyDataSetChanged();
+                }
+                break;
+            case R.id.add_wifi:
+                List<ScanResult> temp = Utils.getWifiList(getApplicationContext());
+                currentScanResultList.clear();
+                for (ScanResult result : temp) {
+                    if (Variable.companyWIFIs.contains(new MWifiInfo(result.SSID, result.BSSID)))
+                        continue;
+                    currentScanResultList.add(result);
+                }
+                if (currentScanResultList.size() <= 0) {
+                    Toast.makeText(LoginActivity.this, "没有可供选择的WIFI", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                String[] strings = new String[currentScanResultList.size()];
+                for (int i = 0; i < currentScanResultList.size(); i++) {
+                    ScanResult result = currentScanResultList.get(i);
+                    strings[i] = result.SSID;
+                }
+                new AlertDialog.Builder(this)
+                        .setTitle("选择要添加的WIFI")
+                        .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        })
+                        .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                if (currentSelectedWifiPosition < currentScanResultList.size()) {
+                                    ScanResult result = currentScanResultList.get(currentSelectedWifiPosition);
+                                    MWifiInfo wifiInfo = new MWifiInfo(result.SSID, result.BSSID);
+                                    if (!Variable.companyWIFIs.contains(wifiInfo)) {
+                                        Variable.companyWIFIs.add(wifiInfo);
+                                        adapter.notifyDataSetChanged();
+                                        Toast.makeText(LoginActivity.this, "添加成功", Toast.LENGTH_SHORT).show();
+                                        dialog.cancel();
+                                    } else {
+                                        Toast.makeText(LoginActivity.this, "该WIFI已添加，请重新选择", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            }
+                        })
+                        .setSingleChoiceItems(strings, 0, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                currentSelectedWifiPosition = which;
+                            }
+                        })
+                        .show();
+                break;
+        }
+    }
+
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -347,7 +540,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             if (success) {
                 Toast.makeText(LoginActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(LoginActivity.this, AttendanceMapActivity.class));
-                finish();
+//                finish();
             } else {
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();

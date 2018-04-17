@@ -52,19 +52,8 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class AttendanceMapActivity extends AppCompatActivity implements View.OnClickListener, LocationSource, EasyPermissions.PermissionCallbacks {
 
-    // 上班时间
-    private final String DefauleStartTime = "9:00";
-    private final String DefaultEndTime = "17:30";
-
-    private String startTime = DefauleStartTime;
-    private String endTime = DefaultEndTime;
-
-    private TimePickerDialog timePickerDialog;
-
-    private Button startTimeBtn, endTimeBtn;
-
-    // 公司路由器mac地址
-    private final String[] companyWIFIs = {"30:fc:68:18:ac:20", "30:fc:68:18:ac:1e"};
+//    // 公司路由器mac地址
+//    private final String[] companyWIFIs = {"30:fc:68:18:ac:20", "30:fc:68:18:ac:1e"};
 
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
@@ -168,14 +157,6 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
         locationInfo = findViewById(R.id.locationInfo);
         confirm = findViewById(R.id.confirm);
         findViewById(R.id.confirm).setOnClickListener(this);
-
-        startTimeBtn = findViewById(R.id.start_time);
-        endTimeBtn = findViewById(R.id.end_time);
-        startTimeBtn.setOnClickListener(this);
-        endTimeBtn.setOnClickListener(this);
-
-        startTimeBtn.setText(startTime);
-        endTimeBtn.setText(endTime);
     }
 
     private void initMap() {
@@ -227,7 +208,7 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
     //must be in UI Thread
     private synchronized void checkWifi() {
         //一分钟重新检查是否在WIFI范围内
-        boolean temp = Utils.checkHasWifi(Utils.getWifiList(getApplicationContext()), companyWIFIs);
+        boolean temp = Utils.checkHasWifi(Utils.getWifiList(getApplicationContext()), Variable.companyWIFIs);
         if (temp) {
             showLocationInfo(new CardInfo(true, "您已进入公司WIFI范围"));
             inWifi = true;
@@ -248,6 +229,11 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
             }
             if (WifiManager.WIFI_STATE_DISABLED == wifiManager.getWifiState()) {
                 showTip("开启WIFI将提高定位精度");
+                try {
+                    wifiManager.setWifiEnabled(true);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -413,8 +399,8 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
                     showTip("位置信息未知，不能打卡");
                     return;
                 }
-                String[] start = startTime.split(":");
-                String[] end = endTime.split(":");
+                String[] start = Variable.startTime.split(":");
+                String[] end = Variable.endTime.split(":");
                 Calendar startCa = (Calendar) calendar.clone();
                 Calendar endCa = (Calendar) calendar.clone();
                 startCa.set(Calendar.HOUR_OF_DAY, Integer.valueOf(start[0]));
@@ -445,25 +431,6 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
                         })
                         .setCancelable(true)
                         .create().show();
-                break;
-
-            case R.id.start_time:
-                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                        startTime = hourOfDay + ":" + minute;
-                        startTimeBtn.setText(hourOfDay + ":" + minute);
-                    }
-                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
-                break;
-            case R.id.end_time:
-                new TimePickerDialog(this, new TimePickerDialog.OnTimeSetListener() {
-                    @Override
-                    public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-                        endTime = hourOfDay + ":" + minute;
-                        endTimeBtn.setText(hourOfDay + ":" + minute);
-                    }
-                }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true).show();
                 break;
         }
     }

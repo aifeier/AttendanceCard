@@ -32,7 +32,7 @@ public class Utils {
                 list = new ArrayList<>();
             }
             for (ScanResult wifi : list) {
-                Log.d("Utils", "WIFI SSID：" + wifi.SSID+" BSSID："+wifi.BSSID);
+                Log.d("Utils", "WIFI SSID：" + wifi.SSID + " BSSID：" + wifi.BSSID);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,11 +40,17 @@ public class Utils {
         return list;
     }
 
-    public static boolean checkHasWifi(List<ScanResult> wifiList, String... wifiBSSIDNames) {
+    public static boolean checkHasWifi(List<ScanResult> wifiList, List<MWifiInfo> wifiBSSIDNames) {
 
+        if (null == wifiBSSIDNames || wifiBSSIDNames.size() == 0) {
+            return false;
+        }
+        if (null == wifiList || wifiList.size() == 0) {
+            return false;
+        }
         for (ScanResult wifi : wifiList) {
-            for (String name : wifiBSSIDNames) {
-                if (wifi.BSSID.equals(name)) {
+            for (MWifiInfo name : wifiBSSIDNames) {
+                if (wifi.BSSID.equals(name.BSSID)) {
                     return true;
                 }
             }
