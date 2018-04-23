@@ -140,6 +140,7 @@ public class AttendanceMapActivity extends AppCompatActivity implements View.OnC
         initLocation();
         checkWifi();
         startLocation();
+        Utils.getIMEI(this);
         Executors.newSingleThreadExecutor().execute(checkWifiRunnable);
         IntentFilter wifiFilter = new IntentFilter();
         wifiFilter.addAction(WifiManager.WIFI_STATE_CHANGED_ACTION);

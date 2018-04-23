@@ -1,10 +1,14 @@
 package com.example.ai.attendancecard;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
+import android.support.v4.app.ActivityCompat;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.amap.api.location.AMapLocationQualityReport;
@@ -96,4 +100,18 @@ public class Utils {
             return networkInfo.isAvailable();
         return false;
     }
+
+    /**
+     * 获取手机IMEI号
+     */
+    public static String getIMEI(Context context) {
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(context.TELEPHONY_SERVICE);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        String imei = telephonyManager.getDeviceId();
+        Log.e("utils", imei);
+        return imei;
+    }
+
 }
