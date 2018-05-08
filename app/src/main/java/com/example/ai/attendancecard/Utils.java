@@ -12,6 +12,8 @@ import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.amap.api.location.AMapLocationQualityReport;
+import com.amap.api.maps2d.CoordinateConverter;
+import com.amap.api.maps2d.model.LatLng;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,20 @@ import java.util.List;
  */
 
 public class Utils {
+    private static String TAG = "Utils";
+
+    public static LatLng LatLngConverter(LatLng latLng,CoordinateConverter.CoordType coordType) {
+        CoordinateConverter converter = new CoordinateConverter();
+        // CoordType.GPS 待转换坐标类型
+        converter.from(coordType);
+        // sourceLatLng待转换坐标点 DPoint类型
+        converter.coord(latLng);
+        // 执行转换操作
+        LatLng converterLatLng = converter.convert();
+        Log.d(TAG, "原坐标：(" + latLng.latitude + "," + latLng.longitude
+                + ") 转换后的坐标：(" + converterLatLng.latitude + "," + converterLatLng.longitude + ")");
+        return converterLatLng;
+    }
 
     public static List<ScanResult> getWifiList(Context applicationContext) {
         List<ScanResult> list = new ArrayList<>();
